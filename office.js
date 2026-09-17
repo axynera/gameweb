@@ -1,4 +1,12 @@
 const THREE = window.THREE;
+const start = document.getElementById('start');
+const play = document.getElementById('play');
+
+if (!THREE) {
+  document.querySelector('#tip').textContent = 'Three.js gagal dimuat. Refresh halaman.';
+  throw new Error('Three.js gagal dimuat');
+}
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xc8e5ff);
 scene.fog = new THREE.Fog(0xc8e5ff, 22, 65);
@@ -33,14 +41,12 @@ function cube(x, y, z, s, material) {
   scene.add(mesh);
 }
 
-// Office building
 cube(0, -0.5, 0, { x: 24, y: 1, z: 18 }, mats.floor);
 cube(-12, 4, 0, { x: 1, y: 9, z: 18 }, mats.wall);
 cube(12, 4, 0, { x: 1, y: 9, z: 18 }, mats.wall);
 cube(0, 4, -9, { x: 24, y: 9, z: 1 }, mats.wall);
 cube(0, 8.5, 0, { x: 24, y: 1, z: 18 }, mats.wall);
 
-// Desks and computers
 for (let x = -8; x <= 8; x += 4) {
   for (let z = -5; z <= 5; z += 5) {
     cube(x, 1, z, { x: 3, y: 2, z: 1.5 }, mats.desk);
@@ -52,7 +58,6 @@ for (const [x, z] of [[-9, -7], [9, -7], [-9, 7], [9, 7]]) {
   cube(x, 1, z, { x: 1.2, y: 2, z: 1.2 }, mats.plant);
 }
 
-// Automatic employee
 const worker = new THREE.Group();
 scene.add(worker);
 worker.position.set(-8, 0, -5);
@@ -79,14 +84,24 @@ const path = [
 ];
 
 let target = 1;
-let started = true;
+let started = false;
 let sim = 0;
 let last = performance.now();
 const $ = id => document.getElementById(id);
 
-$('start').style.display = 'none';
+function beginDemo(event) {
+  if (event) event.preventDefault();
+  started = true;
+  start.classList.add('hidden');
+  play.blur();
+  last = performance.now();
+}
+
+play.addEventListener('click', beginDemo);
+play.addEventListener('touchend', beginDemo, { passive: false });
 
 function work(dt) {
+  if (!started) return;
   const [tx, tz] = path[target];
   const dx = tx - worker.position.x;
   const dz = tz - worker.position.z;
@@ -109,16 +124,16 @@ function work(dt) {
 function loop(time) {
   const dt = Math.min((time - last) / 1000, 0.05);
   last = time;
-  sim += dt;
-  work(dt);
-
-  const total = 8 * 3600 + sim * 20;
-  const hours = Math.floor(total / 3600) % 24;
-  const minutes = Math.floor(total / 60) % 60;
-  $('clock').textContent = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
-  $('day').textContent = 1 + Math.floor(sim / 180);
-  $('money').textContent = 100 + Math.floor(sim / 8);
-
+  if (started) {
+    sim += dt;
+    work(dt);
+    const total = 8 * 3600 + sim * 20;
+    const hours = Math.floor(total / 3600) % 24;
+    const minutes = Math.floor(total / 60) % 60;
+    $('clock').textContent = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+    $('day').textContent = 1 + Math.floor(sim / 180);
+    $('money').textContent = 100 + Math.floor(sim / 8);
+  }
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
